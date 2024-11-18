@@ -1,9 +1,20 @@
 import cv2
 import torch
+import paho.mqtt.client as mqtt
 from ultralytics import YOLO
+import time
 
-# Load YOLOv8 model (you can choose different versions like yolov8n.pt, yolov8s.pt, etc.)
-model = YOLO("yolov8n.pt")  # This loads the YOLOv8 Nano model
+# Configurations for MQTT
+MQTT_BROKER = "ydb8577e.ala.eu-central-1.emqxsl.com"  # Public MQTT broker (you can use your own broker)
+MQTT_PORT = 8883
+MQTT_TOPIC = "yolov8/objects"  # Topic to publish detected object names
+
+# Initialize the YOLOv8 model (you can use different versions like yolov8n.pt, yolov8s.pt, etc.)
+model = YOLO("yolov8n.pt")  # Load YOLOv8 Nano model
+
+# Initialize MQTT Client
+mqtt_client = mqtt.Client()
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)  # Connect to the broker
 
 # Initialize webcam capture (0 is usually the default webcam)
 cap = cv2.VideoCapture(0)
@@ -11,6 +22,13 @@ cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Error: Could not open video stream.")
     exit()
+
+# Function to publish detected object names to MQTT
+def publish_to_mqtt(object_names):
+    for name in object_names:
+        mqtt_client.publish(MQTT_TOPIC, name)  # Publish each detected object name to the MQTT topic
+        print(f"Published: {name}")
+        time.sleep(0.5)  # Delay between messages to prevent flooding
 
 # Loop to read frames from the webcam and perform object detection
 while True:
@@ -42,6 +60,9 @@ while True:
     # Display the detected objects as words in the terminal
     detected_objects_str = "Detected Objects: " + ", ".join(detected_classes)
     print(detected_objects_str)
+
+    # Publish detected object names to MQTT
+    publish_to_mqtt(detected_classes)
 
     # Optional: Display the frame with bounding boxes and labels (for visualization)
     for bbox, cls in zip(detected_boxes, detected_objects):
