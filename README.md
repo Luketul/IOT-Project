@@ -24,4 +24,31 @@ All components are connected via an MQTT broker. The application is run in virtu
 
 ## Project Structure
 
-/project │ ├── /esp8266 │ └── esp8266.ino │ ├── /subscriber │ └── subscriber.py │ ├── /speech-to-text │ └── speech_to_text.py │ ├── /video-to-text │ └── video_to_text.py │ ├── /docker-compose.yml ├── /requirements.txt ├── /README.md └── /LICENSE
+/project
+│
+├── .github/                     # GitHub configurations (workflow, actions)
+│   └── workflows/
+│       └── ci.yml               # Example Continuous Integration configuration
+│
+├── /docs                        # Project documentation
+│   ├── scheme.md                # Block diagrams
+│   └── code_snippets.md         # Selected code snippets
+│
+├── /esp8266                     # Code for the ESP8266 microcontroller
+│   └── esp8266.ino              # Program for temperature measurement and display
+│
+├── /subscriber                  # MQTT data subscriber program
+│   └── subscriber.py            # Program to receive data and store it in InfluxDB
+│
+├── /speech-to-text              # Speech-to-text program
+│   └── speech_to_text.py        # Program using Whisper to transcribe speech
+│
+├── /video-to-text               # Video-to-text program
+│   └── video_to_text.py         # Program using YOLO to detect objects in video
+│
+├── /docker-compose.yml          # Docker Compose file to run all containers (InfluxDB, Grafana, subscriber)
+├── /requirements.txt            # Python dependencies for speech-to-text and video-to-text
+├── /README.md                   # Project documentation
+├── /LICENSE                     # Project license (e.g., MIT)
+└── .gitignore                   # Git ignore file to exclude unnecessary files
+
