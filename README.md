@@ -24,3 +24,4 @@ All components are connected via an MQTT broker. The application is run in virtu
 
 ## Project Structure
 
+/project │ ├── /esp8266 │ └── esp8266.ino │ ├── /subscriber │ └── subscriber.py │ ├── /speech-to-text │ └── speech_to_text.py │ ├── /video-to-text │ └── video_to_text.py │ ├── /docker-compose.yml ├── /requirements.txt ├── /README.md └── /LICENSE
