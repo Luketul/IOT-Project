@@ -2,82 +2,92 @@ import cv2
 import torch
 import paho.mqtt.client as mqtt
 from ultralytics import YOLO
+import json
 import time
 
-# Configurations for MQTT
-MQTT_BROKER = "ydb8577e.ala.eu-central-1.emqxsl.com"  # Public MQTT broker (you can use your own broker)
+# Konfiguracja MQTT
+MQTT_BROKER = "ydb8577e.ala.eu-central-1.emqxsl.com"
 MQTT_PORT = 8883
-MQTT_TOPIC = "yolov8/objects"  # Topic to publish detected object names
+MQTT_TOPIC = "yolov8/objects"
+MQTT_USERNAME = "test_user"
+MQTT_PASSWORD = "1234"
 
-# Initialize the YOLOv8 model (you can use different versions like yolov8n.pt, yolov8s.pt, etc.)
-model = YOLO("yolov8n.pt")  # Load YOLOv8 Nano model
+# Funkcja do publikowania wiadomości przez MQTT
+def publish_to_mqtt(objects):
+    client = mqtt.Client()
+    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    client.tls_set()  # Użyj domyślnych certyfikatów systemowych dla TLS
+    try:
+        client.connect(MQTT_BROKER, MQTT_PORT)
+        payload = json.dumps({"objects": objects})
+        result = client.publish(MQTT_TOPIC, payload)
+        client.disconnect()
+        if result[0] == 0:
+            print(f"Wysłano do MQTT: {payload}")
+        else:
+            print(f"Błąd podczas wysyłania do MQTT: {payload}")
+    except Exception as e:
+        print(f"Błąd MQTT: {e}")
 
-# Initialize MQTT Client
-mqtt_client = mqtt.Client()
-mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)  # Connect to the broker
+# Funkcja do detekcji obiektów
+def detect_objects(frame, model):
+    try:
+        results = model(frame)  # Wykonanie detekcji
+        result = results[0]  # Uzyskanie wyników z pierwszego obrazu
+        labels = result.names  # Lista nazw klas
+        boxes = result.boxes  # Detekcje (bounding boxes)
 
-# Initialize webcam capture (0 is usually the default webcam)
-cap = cv2.VideoCapture(0)
+        if boxes and boxes.cls is not None:
+            detected_objects = boxes.cls.cpu().numpy().astype(int)
+            detected_classes = [labels[int(cls)] for cls in detected_objects]
+            return detected_classes
+        return []
+    except Exception as e:
+        print(f"Błąd detekcji: {e}")
+        return []
 
-if not cap.isOpened():
-    print("Error: Could not open video stream.")
-    exit()
+# Funkcja główna do przetwarzania klatek
+def process_video():
+    print("Inicjalizacja YOLO...")
+    model = YOLO("yolov8n.pt")  # Załaduj model YOLOv8
 
-# Function to publish detected object names to MQTT
-def publish_to_mqtt(object_names):
-    for name in object_names:
-        mqtt_client.publish(MQTT_TOPIC, name)  # Publish each detected object name to the MQTT topic
-        print(f"Published: {name}")
-        time.sleep(0.5)  # Delay between messages to prevent flooding
+    print("Inicjalizacja kamery...")
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Błąd: Nie można otworzyć strumienia wideo.")
+        return
 
-# Loop to read frames from the webcam and perform object detection
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Error: Failed to capture frame.")
-        break
+    print("Rozpoczęcie przetwarzania (naciśnij 'q', aby zakończyć)...")
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Błąd: Nie można przechwycić klatki.")
+                break
 
-    # Perform inference on the current frame
-    results = model(frame)
+            # Wykrywanie obiektów
+            detected_classes = detect_objects(frame, model)
+            print(f"Znalezione obiekty: {detected_classes}")
 
-    # Access the first result (since results is a list)
-    result = results[0]
+            # Publikacja do MQTT
+            if detected_classes:
+                publish_to_mqtt(detected_classes)
 
-    # Get the object labels (class names) from the result
-    labels = result.names  # List of labels (object class names)
+            # Wyświetlanie ramki z detekcjami
+            cv2.imshow("YOLOv8 - Obiekt Detection", frame)
 
-    # Get the detected boxes (bounding boxes, classes, and confidence scores)
-    boxes = result.boxes  # This contains the detection boxes
+            # Wyjście przy naciśnięciu 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-    # Extract the class indices, boxes (xywh), and confidence scores
-    detected_objects = boxes.cls.cpu().numpy().astype(int)  # Class indices
-    detected_boxes = boxes.xywh.cpu().numpy()  # Bounding box coordinates (xywh)
-    detected_scores = boxes.conf.cpu().numpy()  # Confidence scores
+    except KeyboardInterrupt:
+        print("\nPrzerwano przetwarzanie.")
+    except Exception as e:
+        print(f"Błąd: {e}")
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        print("Zakończono.")
 
-    # Convert the class indices to class names
-    detected_classes = [labels[int(cls)] for cls in detected_objects]
-
-    # Display the detected objects as words in the terminal
-    detected_objects_str = "Detected Objects: " + ", ".join(detected_classes)
-    print(detected_objects_str)
-
-    # Publish detected object names to MQTT
-    publish_to_mqtt(detected_classes)
-
-    # Optional: Display the frame with bounding boxes and labels (for visualization)
-    for bbox, cls in zip(detected_boxes, detected_objects):
-        x, y, w, h = bbox
-        label = labels[int(cls)]
-        cv2.rectangle(frame, (int(x - w / 2), int(y - h / 2)), (int(x + w / 2), int(y + h / 2)), (0, 255, 0), 2)
-        cv2.putText(frame, label, (int(x - w / 2), int(y - h / 2) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-
-    # Display the frame (for visualization)
-    cv2.imshow("YOLOv8 Object Detection", frame)
-
-    # Exit if the 'q' key is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Release the capture and close the OpenCV window
-cap.release()
-cv2.destroyAllWindows()
+# Uruchomienie detekcji
+process_video()
