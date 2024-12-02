@@ -7,25 +7,25 @@
 #include <LiquidCrystal_I2C.h>
 
 // WiFi credentials
-const char *ssid = "DESKTOP-DH07LDU 9067";             // Replace with your WiFi name
-const char *password = "6*393Ex5";   // Replace with your WiFi password
+const char *ssid = "iPhone (Łukasz)";          // Replace with your WiFi name
+const char *password = "kuszoton14";           // Replace with your WiFi password
 
 // MQTT Broker settings
-const int mqtt_port = 8883;  // MQTT port (TLS)
-const char *mqtt_broker = "ydb8577e.ala.eu-central-1.emqxsl.com";  // EMQX broker endpoint
-const char *mqtt_topic = "emqx/esp8266";     // MQTT topic
-const char *mqtt_username = "test_user";  // MQTT username for authentication
-const char *mqtt_password = "1234";  // MQTT password for authentication
+const int mqtt_port = 8883;                    // MQTT port (TLS)
+const char *mqtt_broker = "ydb8577e.ala.eu-central-1.emqxsl.com";
+const char *mqtt_topic_temp = "emqx/esp8266";  // MQTT topic for temperature
+const char *mqtt_topic_objects = "yolov8/objects";
+const char *mqtt_topic_speech = "speech-to-text";
+const char *mqtt_username = "test_user";
+const char *mqtt_password = "1234";
 
 // NTP Server settings
-const char *ntp_server = "pool.ntp.org";     // Default NTP server
-// const char* ntp_server = "cn.pool.ntp.org"; // Recommended NTP server for users in China
-const long gmt_offset_sec = 0;            // GMT offset in seconds (adjust for your time zone)
-const int daylight_offset_sec = 0;        // Daylight saving time offset in seconds
+const char *ntp_server = "pool.ntp.org";
+const long gmt_offset_sec = 0;
+const int daylight_offset_sec = 0;
 
 // DS18B20 Sensor settings
-#define ONE_WIRE_BUS D3  // Pin, do którego podłączony jest czujnik DS18B20
-
+#define ONE_WIRE_BUS D3
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
@@ -37,35 +37,6 @@ BearSSL::WiFiClientSecure espClient;
 PubSubClient mqtt_client(espClient);
 
 // SSL certificate for MQTT broker
-// Load DigiCert Global Root G2, which is used by EMQX Public Broker: broker.emqx.io
-static const char ca_cert[]
-PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh
-MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
-d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD
-QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT
-MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j
-b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG
-9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB
-CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97
-nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt
-43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P
-T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4
-gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO
-BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR
-TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw
-DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr
-hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg
-06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF
-PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls
-YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk
-CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
------END CERTIFICATE-----
-)EOF";
-
-// Load DigiCert Global Root CA ca_cert, which is used by EMQX Serverless Deployment
-/*
 static const char ca_cert[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh
@@ -90,27 +61,21 @@ YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk
 CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
 -----END CERTIFICATE-----
 )EOF";
-*/
-
 
 // Function declarations
 void connectToWiFi();
-
 void connectToMQTT();
-
+void mqttCallback(char *topic, byte *payload, unsigned int length);
+void publishTemperature();
 void syncTime();
 
-void mqttCallback(char *topic, byte *payload, unsigned int length);
-
-void publishTemperature();
-
-
 void setup() {
-    lcd.init(); 
+    lcd.init();
     lcd.backlight();
     Serial.begin(115200);
+
     connectToWiFi();
-    syncTime();  // X.509 validation requires synchronization time
+    syncTime(); // Synchronize time for SSL validation
     mqtt_client.setServer(mqtt_broker, mqtt_port);
     mqtt_client.setCallback(mqttCallback);
     connectToMQTT();
@@ -127,19 +92,11 @@ void connectToWiFi() {
 
 void syncTime() {
     configTime(gmt_offset_sec, daylight_offset_sec, ntp_server);
-    Serial.print("Waiting for NTP time sync: ");
-    while (time(nullptr) < 8 * 3600 * 2) {
-        delay(1000);
-        Serial.print(".");
+    while (time(nullptr) < 24 * 3600) { // Wait until time is synced
+        delay(500);
+        Serial.println("Waiting for NTP time sync...");
     }
     Serial.println("Time synchronized");
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) {
-        Serial.print("Current time: ");
-        Serial.println(asctime(&timeinfo));
-    } else {
-        Serial.println("Failed to obtain local time");
-    }
 }
 
 void connectToMQTT() {
@@ -147,12 +104,11 @@ void connectToMQTT() {
     espClient.setTrustAnchors(&serverTrustedCA);
     while (!mqtt_client.connected()) {
         String client_id = "esp8266-client-" + String(WiFi.macAddress());
-        Serial.printf("Connecting to MQTT Broker as %s.....\n", client_id.c_str());
+        Serial.printf("Connecting to MQTT Broker as %s...\n", client_id.c_str());
         if (mqtt_client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
             Serial.println("Connected to MQTT broker");
-            mqtt_client.subscribe(mqtt_topic);
-            // Publish message upon successful connection
-            mqtt_client.publish(mqtt_topic, "Hi EMQX I'm ESP8266 ^^");
+            mqtt_client.subscribe(mqtt_topic_objects);
+            mqtt_client.subscribe(mqtt_topic_speech);
         } else {
             char err_buf[128];
             espClient.getLastSSLError(err_buf, sizeof(err_buf));
@@ -166,26 +122,44 @@ void connectToMQTT() {
 }
 
 void mqttCallback(char *topic, byte *payload, unsigned int length) {
-    Serial.print("Message received on topic: ");
+    Serial.print("Message: ");
     Serial.print(topic);
     Serial.print("]: ");
+    
+    String message = "";
     for (int i = 0; i < length; i++) {
-        Serial.print((char) payload[i]);
+        message += (char) payload[i]; // Łączy wiadomość
     }
-    Serial.println();
+    Serial.println(message);
+
+    // Jeśli temat to "speech-to-text", wyświetl na LCD
+    if (String(topic) == "speech-to-text") {
+        lcd.clear(); // Wyczyść wyświetlacz przed wyświetleniem nowej wiadomości
+        lcd.setCursor(0, 0); // Ustaw kursor na początek pierwszej linii
+        lcd.print(message);  // Wyświetl wiadomość na LCD
+    }
+
+    // Możesz dodać inne tematy, np. "yolov8/objects" i wyświetlić na LCD w podobny sposób
+    if (String(topic) == "yolov8/objects") {
+        lcd.clear(); // Wyczyść wyświetlacz przed wyświetleniem nowej wiadomości
+        lcd.setCursor(0, 1); // Ustaw kursor na drugą linię
+        lcd.print(message);  // Wyświetl wiadomość na LCD
+    }
 }
+
+
 void publishTemperature() {
-    sensors.requestTemperatures(); // Odczyt temperatury
-    float temperature = sensors.getTempCByIndex(0); // Odczyt temperatury w °C
+    sensors.requestTemperatures();
+    float temperature = sensors.getTempCByIndex(0);
     if (temperature == DEVICE_DISCONNECTED_C) {
         Serial.println("Failed to read temperature from DS18B20!");
         return;
     }
     String tempStr = String(temperature);
-    mqtt_client.publish(mqtt_topic, tempStr.c_str());
-    //lcd.print("Published temperature: ");
-    lcd.setCursor(6, 0);
-    lcd.print(tempStr);
+    mqtt_client.publish(mqtt_topic_temp, tempStr.c_str());
+    lcd.setCursor(0, 0);
+    lcd.print("Temp: ");
+    lcd.print(tempStr + " C   "); // Clear unused spaces
 }
 
 void loop() {
@@ -197,7 +171,7 @@ void loop() {
     // Publish temperature every 10 seconds
     static unsigned long lastTime = 0;
     unsigned long now = millis();
-    if (now - lastTime > 1000) {
+    if (now - lastTime > 10000) { // 10 seconds interval
         lastTime = now;
         publishTemperature();
     }
